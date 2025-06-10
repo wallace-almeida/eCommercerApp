@@ -2,6 +2,7 @@ import 'package:ecommerce/model/category.dart';
 import 'package:ecommerce/model/model.dart';
 import 'package:ecommerce/page/home/widgets/banner.dart';
 import 'package:ecommerce/page/home/widgets/curated_items.dart';
+import 'package:ecommerce/page/itens_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -17,7 +18,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    Size size =MediaQuery.of(context).size;
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -51,7 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: const Center(
                             child: Text(
                               "3",
-                              style: TextStyle(color: Colors.white, fontSize: 10),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
                             ),
                           ),
                         ),
@@ -98,32 +103,28 @@ class _HomeScreenState extends State<HomeScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(
-                  Category.categories.length,
-                      (index) {
-                    final category = Category.categories[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: InkWell(
-                        onTap: () {
-                          // ação ao tocar em categoria
-                        },
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: backgroundColor1,
-                              backgroundImage: AssetImage(category.image),
-
-                            ),
-                            const SizedBox(height: 10),
-                            Text(category.nome),
-                          ],
-                        ),
+                children: List.generate(Category.categories.length, (index) {
+                  final category = Category.categories[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: InkWell(
+                      onTap: () {
+                        // ação ao tocar em categoria
+                      },
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: backgroundColor1,
+                            backgroundImage: AssetImage(category.image),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(category.nome),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                }),
               ),
             ),
 
@@ -158,23 +159,34 @@ class _HomeScreenState extends State<HomeScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(
-                  AppModel.fashionEcommerceApp.length,
-                      (index) {
-                    final eCommerceItem = AppModel.fashionEcommerceApp[index];
-                    return Padding(
-                      padding: index == 0
-                          ? const EdgeInsets.symmetric(horizontal: 20)
-                          : const EdgeInsets.only(right: 20),
-                      child: InkWell(
-                        onTap: () {
-                          // ação ao tocar no item
-                        },
-                        child: CuratedItems(eCommerceItems: eCommerceItem, size: size)
+                children: List.generate(AppModel.fashionEcommerceApp.length, (
+                  index,
+                ) {
+                  final eCommerceItem = AppModel.fashionEcommerceApp[index];
+                  return Padding(
+                    padding:
+                        index == 0
+                            ? const EdgeInsets.symmetric(horizontal: 20)
+                            : const EdgeInsets.only(right: 20),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => ItensDetailScreen(
+                                  eCommerceApp: eCommerceItem,
+                                ),
+                          ),
+                        );
+                      },
+                      child: CuratedItems(
+                        eCommerceItems: eCommerceItem,
+                        size: size,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                }),
               ),
             ),
           ],
