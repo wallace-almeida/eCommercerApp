@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../signup_screen/signup_screen.dart';
+import '../widget/custom_buttom/custom_buttom.dart';
 import '../widget/text_field/text_field.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,11 +38,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.text,
               ),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(onPressed: () {}, child: Text("Login")),
-              ),
               SizedBox(height: 15),
+              CustomButton(
+                text: "Login",
+                onPressed: () {
+                  // Sua lógica de login
+                },
+              ),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
