@@ -5,7 +5,8 @@ class CustomTextField extends StatelessWidget {
   final String label;
   final bool obscureText;
   final TextInputType keyboardType;
-  final IconData? icon;
+  final IconData? icon; // prefix icon
+  final Widget? suffixIcon; // agora é um Widget, não mais IconData
 
   const CustomTextField({
     Key? key,
@@ -14,12 +15,13 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.icon,
+    this.suffixIcon,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(14),
@@ -27,7 +29,7 @@ class CustomTextField extends StatelessWidget {
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
             blurRadius: 6,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -35,10 +37,11 @@ class CustomTextField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        style: TextStyle(fontSize: 16, color: Colors.black87),
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
         decoration: InputDecoration(
           prefixIcon:
               icon != null ? Icon(icon, color: Colors.blueAccent) : null,
+          suffixIcon: suffixIcon, // aceita qualquer widget
           labelText: label,
           labelStyle: TextStyle(fontSize: 16, color: Colors.grey[700]),
           border: OutlineInputBorder(
@@ -47,9 +50,12 @@ class CustomTextField extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           filled: true,
           fillColor: Colors.grey[100],
         ),

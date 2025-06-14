@@ -17,9 +17,14 @@ class _SignupScreenState extends State<SignupScreen> {
   TextEditingController senhaController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   String selctedRole = "User";
+  bool isLoading = false;
+  bool isPasswordVisible = false;
 
   // funcao para criar o usuario
   void _signup() async {
+    setState(() {
+      isLoading = true;
+    });
     final _authService = AuthService();
     String? result = await _authService.signup(
       name: nameController.text,
@@ -27,15 +32,20 @@ class _SignupScreenState extends State<SignupScreen> {
       senha: senhaController.text,
       role: selctedRole,
     );
+    setState(() {
+      isLoading = false;
+    });
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Usuário criado com sucesso!"),
-          behavior: SnackBarBehavior.floating, // opcional: faz ele flutuar
-          backgroundColor: Colors.green, // opcional: cor de sucesso
-          duration: Duration(seconds: 3), // opcional: tempo na tela
+          behavior: SnackBarBehavior.fixed,
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
+      // Aguarda o tempo do SnackBar antes de navegar
+      await Future.delayed(Duration(seconds: 2));
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => LoginScreen()),
@@ -44,9 +54,9 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Erro ao tentar criar o usuario $result!"),
-          behavior: SnackBarBehavior.floating, // opcional: faz ele flutuar
-          backgroundColor: Colors.red, // opcional: cor de sucesso
-          duration: Duration(seconds: 3), // opcional: tempo na tela
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -65,19 +75,33 @@ class _SignupScreenState extends State<SignupScreen> {
             CustomTextField(
               controller: nameController,
               label: "Nome",
+              icon: Icons.person,
               keyboardType: TextInputType.text,
             ),
             SizedBox(height: 15),
             CustomTextField(
               controller: emailController,
               label: "Email",
+              icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
             ),
             SizedBox(height: 15),
             CustomTextField(
               controller: senhaController,
               label: "Senha",
-              keyboardType: TextInputType.text,
+              obscureText: !isPasswordVisible,
+              icon: Icons.lock,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.blueAccent,
+                ),
+                onPressed: () {
+                  setState(() {
+                    isPasswordVisible = !isPasswordVisible;
+                  });
+                },
+              ),
             ),
 
             SizedBox(height: 15),
@@ -125,7 +149,9 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
 
             SizedBox(height: 15),
-            CustomButton(text: "Criar Conta ", onPressed: _signup),
+            isLoading
+                ? const CircularProgressIndicator()
+                : CustomButton(text: "Criar Conta", onPressed: _signup),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

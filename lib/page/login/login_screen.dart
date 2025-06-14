@@ -14,6 +14,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailController = TextEditingController();
   TextEditingController senhaController = TextEditingController();
+  bool isPasswordVisible = false;
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +37,19 @@ class _LoginScreenState extends State<LoginScreen> {
               CustomTextField(
                 controller: senhaController,
                 label: "Senha",
-                keyboardType: TextInputType.text,
+                obscureText: !isPasswordVisible,
+                icon: Icons.lock,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.blueAccent,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      isPasswordVisible = !isPasswordVisible;
+                    });
+                  },
+                ),
               ),
 
               SizedBox(height: 15),
@@ -45,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Sua lógica de login
                 },
               ),
+              SizedBox(height: 15),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
