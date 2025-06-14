@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../signup_screen/signup_screen.dart';
+import '../widget/text_field/text_field.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,21 +25,18 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Image.asset("assets/image/login.png"),
               SizedBox(height: 15),
-              TextField(
-                controller: emailController ,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
-                ),
+              CustomTextField(
+                controller: emailController,
+                label: "Email",
+                keyboardType: TextInputType.emailAddress,
               ),
               SizedBox(height: 15),
-              TextField(
+              CustomTextField(
                 controller: senhaController,
-                decoration: InputDecoration(
-                  labelText: "Senha",
-                  border: OutlineInputBorder(),
-                ),
+                label: "Senha",
+                keyboardType: TextInputType.text,
               ),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(onPressed: () {}, child: Text("Login")),
@@ -45,9 +45,26 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                Text("Nao tem uma conta?", style: TextStyle(fontSize: 18),),
-                InkWell(onTap : (){}, child: Text("Criar conta", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue, letterSpacing: -1),))
-              ],)
+                  Text("Nao tem uma conta?", style: TextStyle(fontSize: 18)),
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SignupScreen()),
+                      );
+                    },
+                    child: Text(
+                      " Criar conta",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
