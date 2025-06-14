@@ -1,5 +1,8 @@
+import 'package:ecommerce/page/home/home_screen.dart';
+import 'package:ecommerce/page/home_pageAdim/home_screen_admin.dart';
 import 'package:flutter/material.dart';
 
+import '../../service/auth_service/auth_service.dart';
 import '../signup_screen/signup_screen.dart';
 import '../widget/custom_buttom/custom_buttom.dart';
 import '../widget/text_field/text_field.dart';
@@ -16,6 +19,40 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController senhaController = TextEditingController();
   bool isPasswordVisible = false;
   bool isLoading = false;
+
+  void login() async {
+    setState(() {
+      isLoading = true;
+    });
+    final _authService = AuthService();
+    String? result = await _authService.login(
+      email: emailController.text,
+      senha: senhaController.text,
+    );
+    setState(() {
+      isLoading = false;
+    });
+    if (result == "Admin") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreenAdmin()),
+      );
+    } else if (result == "User") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Erro ao tentar acessar a conta $result!"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,12 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               SizedBox(height: 15),
-              CustomButton(
-                text: "Login",
-                onPressed: () {
-                  // Sua lógica de login
-                },
-              ),
+              isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : CustomButton(text: "Login", onPressed: login),
               SizedBox(height: 15),
 
               Row(
