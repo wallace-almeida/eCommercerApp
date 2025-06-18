@@ -1,12 +1,16 @@
 import 'package:ecommerce/model/category.dart';
 import 'package:ecommerce/model/model.dart';
-import 'package:ecommerce/page/home/widgets/banner.dart';
-import 'package:ecommerce/page/home/widgets/curated_items.dart';
+import 'package:ecommerce/page/home_user/widgets/banner.dart';
+import 'package:ecommerce/page/home_user/widgets/curated_items.dart';
 import 'package:ecommerce/page/itens_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../contants/constans.dart';
+import '../../../contants/constans.dart';
+import '../../../service/auth_service/auth_service.dart';
+import '../../login/login_screen.dart';
+
+AuthService _authService = AuthService();
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -188,6 +192,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }),
               ),
+            ),
+            ElevatedButton(
+              child: Text("Sair"),
+              onPressed: () {
+                _authService.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                );
+              },
             ),
           ],
         ),

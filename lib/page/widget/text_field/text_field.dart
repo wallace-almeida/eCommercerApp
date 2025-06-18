@@ -41,7 +41,7 @@ class CustomTextField extends StatelessWidget {
         decoration: InputDecoration(
           prefixIcon:
               icon != null ? Icon(icon, color: Colors.blueAccent) : null,
-          suffixIcon: suffixIcon, // aceita qualquer widget
+          suffixIcon: suffixIcon ?? const SizedBox.shrink(),
           labelText: label,
           labelStyle: TextStyle(fontSize: 16, color: Colors.grey[700]),
           border: OutlineInputBorder(

@@ -1,8 +1,8 @@
-import 'package:ecommerce/page/home/home_screen.dart';
-import 'package:ecommerce/page/home_pageAdim/home_screen_admin.dart';
 import 'package:flutter/material.dart';
 
 import '../../service/auth_service/auth_service.dart';
+import '../Role_base_login/Admin/home_pageAdim/home_screen_admin.dart';
+import '../Role_base_login/User/user_home_screen.dart';
 import '../signup_screen/signup_screen.dart';
 import '../widget/custom_buttom/custom_buttom.dart';
 import '../widget/text_field/text_field.dart';
