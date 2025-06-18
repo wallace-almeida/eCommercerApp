@@ -1,3 +1,4 @@
+import 'package:ecommerce/page/Role_base_login/Admin/item/add_item.dart';
 import 'package:ecommerce/page/login/login_screen.dart';
 import 'package:ecommerce/service/auth_service/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,11 @@ class HomeScreenAdmin extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () async {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => AddItem()));
+        },
         child: Icon(Icons.add),
       ),
     );
