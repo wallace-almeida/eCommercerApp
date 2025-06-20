@@ -3,7 +3,7 @@ class AddItemState {
   final bool isLoading;
   final String? selectCategory;
   final List<String> categories;
-  final String? size;
+  final List<String> size;
   final List<String> color;
   final bool isDiscouted;
   final String? discoutedPercentage;
@@ -13,7 +13,7 @@ class AddItemState {
     this.isLoading = false,
     this.selectCategory,
     this.categories = const [],
-    this.size,
+    this.size = const [], // Valor padrão vazio
     this.color = const [],
     this.isDiscouted = false,
     this.discoutedPercentage,
@@ -24,7 +24,7 @@ class AddItemState {
     bool? isLoading,
     String? selectCategory,
     List<String>? categories,
-    String? size,
+    List<String>? size, // Corrigido para List<String>?
     List<String>? color,
     bool? isDiscouted,
     String? discoutedPercentage,

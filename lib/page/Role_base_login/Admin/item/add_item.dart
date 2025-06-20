@@ -1,9 +1,15 @@
+import 'dart:io';
+
+import 'package:ecommerce/page/widget/custom_buttom/custom_buttom.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../widget/show_snackbar.dart';
 import '../../../widget/text_field/text_field.dart';
+import '../controller/add_item_controller.dart';
 
-class AddItem extends StatelessWidget {
+class AddItem extends ConsumerWidget {
   AddItem({super.key});
   TextEditingController sizeController = TextEditingController();
   TextEditingController priceController = TextEditingController();
@@ -12,7 +18,10 @@ class AddItem extends StatelessWidget {
   TextEditingController colorController = TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(addProvider);
+    final notifier = ref.read(addProvider.notifier);
+
     return Scaffold(
       appBar: AppBar(centerTitle: true, title: Text("Adicionar itens a loja")),
       body: Padding(
@@ -23,82 +32,246 @@ class AddItem extends StatelessWidget {
             children: [
               Center(
                 child: Container(
-                  height:
-                      150, // Aumentar a altura para acomodar melhor a imagem e o ícone
-                  width:
-                      150, // Aumentar a largura para acomodar melhor a imagem e o ícone
+                  height: 150,
+                  width: 150,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200], // Adicionar uma cor de fundo suave
-                    border: Border.all(
-                      color: Colors.grey[400]!, // Cor da borda mais suave
-                      width: 1.5, // Largura da borda
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      15,
-                    ), // Bordas mais arredondadas
+                    color: Colors.grey[200],
+                    border: Border.all(color: Colors.grey[400]!, width: 1.5),
+                    borderRadius: BorderRadius.circular(15),
                     boxShadow: [
-                      // Adicionar uma sombra para dar profundidade
                       BoxShadow(
                         color: Colors.grey.withOpacity(0.3),
                         spreadRadius: 2,
                         blurRadius: 5,
-                        offset: Offset(0, 3), // Posição da sombra
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
-                  child: InkWell(
-                    // Usar InkWell para tornar a área clicável
-                    onTap: () async {
-                      // Lógica para selecionar a imagem
-                      final ImagePicker picker = ImagePicker();
-                      // Pick an image.
-                      // ignore: unused_local_variable
-                      final XFile? image = await picker.pickImage(
-                        source: ImageSource.gallery,
-                      );
-                    },
-                    child: Column(
-                      // Usar Column para centralizar o ícone e o texto
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Icon(
-                          Icons.add_a_photo,
-                          size: 50,
-                          color: Colors.grey[600],
-                        ), // Ícone de adicionar foto
-                        SizedBox(
-                          height: 10,
-                        ), // Espaçamento entre o ícone e o texto
-                        Text(
-                          "Adicionar Foto",
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 16,
+                  child:
+                      state.imagePath != null
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.file(
+                              File(state.imagePath!),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                          : state.isLoading
+                          ? Center(child: CircularProgressIndicator())
+                          : GestureDetector(
+                            onTap: () {
+                              _showPickOptions(context, notifier);
+                            },
+                            child: Icon(
+                              Icons.add_a_photo,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ), // Texto indicativo
-                      ],
-                    ),
-                  ),
                 ),
               ),
               SizedBox(height: 15),
               CustomTextField(controller: nameController, label: "Nome"),
               SizedBox(height: 15),
               CustomTextField(controller: priceController, label: "Preço"),
-              SizedBox(height: 15),
-              // DropdownButtonFormField(items: [], onChanged: (value) {}),
-              CustomTextField(controller: sizeController, label: "Tamanho"),
-              SizedBox(height: 15),
-              CustomTextField(controller: colorController, label: "Cores"),
+              SizedBox(
+                height: 20,
+              ), // Aumentar o espaçamento para melhor legibilidade
+              DropdownButtonFormField<String>(
+                isExpanded:
+                    true, // Garante que o dropdown ocupe a largura disponível
+                value: state.selectCategory,
+                onChanged: notifier.setSelectCategory,
+                decoration: InputDecoration(
+                  labelText: "Categoria do Produto", // Texto mais descritivo
+                  hintText: "Escolha a categoria", // Adicionar um hintText
+                  filled: true, // Adiciona um fundo ao campo
+                  fillColor: Colors.grey[50], // Cor de fundo suave
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      12.0, // Bordas mais arredondadas
+                    ), // Bordas levemente arredondadas
+                    borderSide: BorderSide(
+                      color: Colors.grey[300]!, // Cor da borda ainda mais suave
+                    ), // Cor da borda mais suave
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    // Estilo da borda quando focado
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                      width: 2.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    // Estilo da borda quando não focado
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(
+                      color: Colors.grey[300]!,
+                      width: 1.0,
+                    ),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical:
+                        14.0, // Ajustar o padding interno para melhor visualização
+                  ), // Ajustar o padding interno
+                  prefixIcon: Icon(
+                    Icons.category_outlined,
+                    color: Colors.grey[600],
+                  ), // Adicionar um ícone
+                ),
+                items:
+                    state.categories.map((category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(
+                          category,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ), // Melhorar a cor do texto do item
+                        ), // Ajustar o tamanho da fonte do item
+                      );
+                    }).toList(),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ), // Estilo do texto selecionado
+                icon: Icon(
+                  Icons.arrow_drop_down_circle_outlined,
+                  color: Colors.grey[700],
+                ), // Ícone personalizado
+              ),
               SizedBox(height: 15),
               CustomTextField(
-                controller: descontoController,
-                label: "Desconto",
+                controller: sizeController,
+                label: "Tamanho",
+                onSubmitted: (value) {
+                  notifier.addSize(value);
+                  sizeController.clear();
+                },
               ),
+              Wrap(
+                spacing: 8,
+                children:
+                    state.size
+                        .map(
+                          (size) => Chip(
+                            label: Text(size),
+                            onDeleted: () {
+                              notifier.removeSize(size);
+                            },
+                          ),
+                        )
+                        .toList(),
+              ),
+              SizedBox(
+                height: 15,
+              ), // Esta linha estava causando o erro, pois estava dentro da lista de children do Wrap.
+
+              CustomTextField(
+                controller: colorController,
+                label: "Cores",
+                onSubmitted: (value) {
+                  notifier.addColor(value);
+                  colorController.clear();
+                },
+              ),
+              Wrap(
+                spacing: 8,
+                children:
+                    state.color
+                        .map(
+                          (color) => Chip(
+                            label: Text(color),
+                            onDeleted: () {
+                              notifier.removeSize(color);
+                            },
+                          ),
+                        )
+                        .toList(),
+              ),
+              Row(
+                children: [
+                  Checkbox(
+                    value: state.isDiscouted,
+                    onChanged: notifier.toggleDiscouted,
+                  ),
+                  Text("Aplicar Desconto"),
+                ],
+              ),
+              if (state.isDiscouted == true)
+                Column(
+                  children: [
+                    CustomTextField(
+                      controller: descontoController,
+                      label: "Desconto",
+                      onChanged: (value) {
+                        notifier.setDiscoutedPercentage(value);
+                      },
+                    ),
+                    SizedBox(height: 15),
+                  ],
+                ),
+              state.isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : Center(
+                    child: CustomButton(
+                      text: "Salvar Item",
+                      onPressed: () async {
+                        try {
+                          await notifier.uploadAndSaveItem(
+                            nameController.text,
+                            priceController.text,
+                          );
+                          showSnackBar(context, "Item salvo com sucesso");
+                          Navigator.pop(context);
+                        } catch (e) {
+                          showSnackBar(context, "Erro ao salvar o item $e");
+                        }
+                      },
+                    ),
+                  ),
+              SizedBox(height: 15),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showPickOptions(BuildContext context, AddItemNotifier notifier) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text("Câmera"),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  notifier.pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text("Galeria"),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  notifier.pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
