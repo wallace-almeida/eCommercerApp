@@ -1,12 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  // firebase Authentication instance
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // instance do fireStore
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Future<String?> signup({
     required String name,
@@ -15,52 +10,64 @@ class AuthService {
     required String role,
   }) async {
     try {
-      // criar User no firebase, com autenticacao email e senha
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(
-            email: email.trim(),
-            password: senha.trim(),
-          );
-
-      // save user in firestore (nome, email, role,)
-      await _firestore.collection("users").doc(userCredential.user!.uid).set({
-        "name": name.trim(),
-        "role": role,
-        "email": email.trim(),
-      });
-
-      return null; // sucesso, sem erro
-    } catch (e) {
-      return e.toString();
-    }
-  }
-
-  // login
-
-  Future<String?> login({required String email, required String senha}) async {
-    try {
-      // logar o User usando o firebase, com autenticacao email e senha
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final authResponse = await _supabase.auth.signUp(
         email: email.trim(),
         password: senha.trim(),
       );
 
-      // fetching the user s  role from firestore to determinde acess level
-      DocumentSnapshot userDoc =
-          await _firestore
-              .collection("users")
-              .doc(userCredential.user!.uid)
-              .get();
+      final userId = authResponse.user?.id;
+      if (userId == null) {
+        return 'Falha ao criar usuário.';
+      }
 
-      return userDoc["role"]; // return role, adim or users
+      final insertResponse = await _supabase.from('users').insert({
+        'id': userId,
+        'name': name.trim(),
+        'role': role,
+        'email': email.trim(),
+      });
+
+      return null; // sucesso
+    } on AuthException catch (e) {
+      return e.message;
+    } on PostgrestException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     }
   }
 
-  //Logout do usuario
+  Future<String?> login({required String email, required String senha}) async {
+    try {
+      final authResponse = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: senha.trim(),
+      );
 
-  signOut() async {
-    _auth.signOut();
+      final userId = authResponse.user?.id;
+      if (userId == null) {
+        return 'Falha no login.';
+      }
+
+      final data =
+          await _supabase
+              .from('users')
+              .select('role')
+              .eq('id', userId)
+              .single();
+
+      final role = data['role'] as String?;
+      return role;
+    } on AuthException catch (e) {
+      return e.message;
+    } on PostgrestException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
   }
 }

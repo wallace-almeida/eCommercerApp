@@ -1,10 +1,9 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../model/add_item_model.dart';
 
@@ -17,12 +16,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     fetchCategories();
   }
 
-  final CollectionReference items = FirebaseFirestore.instance.collection(
-    "items",
-  );
-
-  final CollectionReference categoriesCollection = FirebaseFirestore.instance
-      .collection("Category");
+  final SupabaseClient supabase = Supabase.instance.client;
 
   void pickImage(ImageSource source) async {
     try {
@@ -32,11 +26,11 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
       }
     } catch (e) {
       print(e);
-      throw Exception("Erro ao salvar o item $e");
+      throw Exception("Erro ao escolher a imagem: $e");
     }
   }
 
-  void setSelectCategory(String? category) {
+  void setSelectCategory(Map<String, dynamic>? category) {
     state = state.copyWith(selectCategory: category);
   }
 
@@ -76,17 +70,25 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
 
   Future<void> fetchCategories() async {
     try {
-      QuerySnapshot snapshot = await categoriesCollection.get();
-      List<String> categories =
-          snapshot.docs.map((doc) => doc['name'] as String).toList();
+      final response = await supabase.from('categories').select('id, name');
+      final categories =
+          (response as List)
+              .map<Map<String, dynamic>>(
+                (item) => {
+                  'id': item['id'] as String,
+                  'name': item['name'] as String,
+                },
+              )
+              .toList();
+
+      // Atualiza o estado com a lista de mapas (id + name)
       state = state.copyWith(categories: categories);
       print("Categorias carregadas: $categories");
     } catch (e) {
-      throw Exception("Erro ao buscar as categorias $e");
+      throw Exception("Erro ao buscar as categorias: $e");
     }
   }
 
-  // upload and save item
   Future<void> uploadAndSaveItem(String name, String price) async {
     if (state.imagePath == null ||
         name.isEmpty ||
@@ -102,33 +104,88 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
 
     state = state.copyWith(isLoading: true);
     try {
+      print("🚀 Iniciando upload do item...");
       final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      final referencia = FirebaseStorage.instance.ref().child(
-        "image/$fileName",
+
+      final file = File(state.imagePath!);
+      print("📷 Caminho da imagem original: ${file.path}");
+
+      // Comprimir a imagem
+      print("🔧 Comprimindo imagem...");
+      final compressedFile = await FlutterImageCompress.compressWithFile(
+        file.absolute.path,
+        minWidth: 800,
+        minHeight: 800,
+        quality: 60,
+        format: CompressFormat.jpeg,
       );
-      await referencia.putFile(File(state.imagePath!));
-      final imageUrl = await referencia.getDownloadURL();
 
-      // salvar item no firestore
+      if (compressedFile == null) {
+        print("❌ Erro: compressWithFile retornou null");
+        throw Exception("Erro ao comprimir a imagem");
+      }
 
-      final String uid = FirebaseAuth.instance.currentUser!.uid;
-      await items.add({
+      print("✅ Imagem comprimida. Tamanho: ${compressedFile.length} bytes");
+
+      // Upload no Supabase Storage
+      print("📤 Fazendo upload para Supabase Storage...");
+      final storageResponse = await supabase.storage
+          .from('items-images')
+          .uploadBinary(
+            fileName,
+            compressedFile,
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+
+      print("✅ Upload concluído. storageResponse: $storageResponse");
+
+      final imageUrl = supabase.storage
+          .from('items-images')
+          .getPublicUrl(fileName);
+
+      print("🌐 URL pública da imagem: $imageUrl");
+
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        print("❌ Usuário não autenticado");
+        throw Exception("Usuário não autenticado");
+      }
+      print("👤 Usuário autenticado: ${user.id}");
+
+      // Criar o item para salvar no banco
+      final itemToInsert = {
         "name": name,
         "price": int.parse(price),
-        "imageUrl": imageUrl,
-        "uploadedBy": uid,
-        "isDiscouted":
-            state.isDiscouted ? int.parse(state.discoutedPercentage!) : 0,
-        "discoutedPercentage": state.discoutedPercentage,
-        "category": state.selectCategory,
+        "image_url": imageUrl,
+        "uploaded_by": user.id,
+        "is_discouted": state.isDiscouted ? 1 : 0,
+        "discouted_percentage":
+            state.isDiscouted ? state.discoutedPercentage : null,
+        "category_id": state.selectCategory?['id'],
         "size": state.size,
         "color": state.color,
-      });
-      state = AddItemState();
+      };
 
-      state = state.copyWith(isLoading: false);
+      print("📦 Item a ser salvo no banco: $itemToInsert");
+
+      // Salvar no banco
+      print("💾 Inserindo item no banco...");
+
+      try {
+        final insertResponse = await supabase
+            .from('items')
+            .insert(itemToInsert);
+        print("🎉 Item salvo com sucesso no banco: $insertResponse");
+      } catch (e) {
+        print("❌ Erro no insert: $e");
+        throw Exception("Erro ao salvar no banco: $e");
+      }
+
+      print("🎉 Item salvo com sucesso no banco");
+      state = AddItemState();
     } catch (e) {
-      throw Exception("Erro ao salvar o item $e");
+      print("⚠ Erro no uploadAndSaveItem: $e");
+      throw Exception("Erro ao salvar o item: $e");
     } finally {
       state = state.copyWith(isLoading: false);
     }

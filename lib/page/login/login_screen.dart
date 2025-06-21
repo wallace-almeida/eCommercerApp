@@ -61,64 +61,68 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Image.asset("assets/image/login.png"),
-              SizedBox(height: 15),
-              CustomTextField(
-                controller: emailController,
-                label: "Email",
-                keyboardType: TextInputType.emailAddress,
-              ),
-              SizedBox(height: 15),
-              CustomTextField(
-                controller: senhaController,
-                label: "Senha",
-                obscureText: !isPasswordVisible,
-                icon: Icons.lock,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.blueAccent,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isPasswordVisible = !isPasswordVisible;
-                    });
-                  },
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Image.asset("assets/image/login.png"),
+                SizedBox(height: 15),
+                CustomTextField(
+                  controller: emailController,
+                  label: "Email",
+                  keyboardType: TextInputType.emailAddress,
                 ),
-              ),
-
-              SizedBox(height: 15),
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : CustomButton(text: "Login", onPressed: login),
-              SizedBox(height: 15),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Nao tem uma conta?", style: TextStyle(fontSize: 18)),
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => SignupScreen()),
-                      );
+                SizedBox(height: 15),
+                CustomTextField(
+                  controller: senhaController,
+                  label: "Senha",
+                  obscureText: !isPasswordVisible,
+                  icon: Icons.lock,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.blueAccent,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordVisible = !isPasswordVisible;
+                      });
                     },
-                    child: Text(
-                      " Criar conta",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        letterSpacing: -1,
+                  ),
+                ),
+
+                SizedBox(height: 15),
+                isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : CustomButton(text: "Login", onPressed: login),
+                SizedBox(height: 15),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Nao tem uma conta?", style: TextStyle(fontSize: 18)),
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => SignupScreen()),
+                        );
+                      },
+                      child: Text(
+                        " Criar conta",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          letterSpacing: -1,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

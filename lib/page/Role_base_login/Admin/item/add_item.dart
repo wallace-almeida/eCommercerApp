@@ -77,26 +77,20 @@ class AddItem extends ConsumerWidget {
               SizedBox(
                 height: 20,
               ), // Aumentar o espaçamento para melhor legibilidade
-              DropdownButtonFormField<String>(
-                isExpanded:
-                    true, // Garante que o dropdown ocupe a largura disponível
+              DropdownButtonFormField<Map<String, dynamic>>(
+                isExpanded: true,
                 value: state.selectCategory,
                 onChanged: notifier.setSelectCategory,
                 decoration: InputDecoration(
-                  labelText: "Categoria do Produto", // Texto mais descritivo
-                  hintText: "Escolha a categoria", // Adicionar um hintText
-                  filled: true, // Adiciona um fundo ao campo
-                  fillColor: Colors.grey[50], // Cor de fundo suave
+                  labelText: "Categoria do Produto",
+                  hintText: "Escolha a categoria",
+                  filled: true,
+                  fillColor: Colors.grey[50],
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(
-                      12.0, // Bordas mais arredondadas
-                    ), // Bordas levemente arredondadas
-                    borderSide: BorderSide(
-                      color: Colors.grey[300]!, // Cor da borda ainda mais suave
-                    ), // Cor da borda mais suave
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    // Estilo da borda quando focado
                     borderRadius: BorderRadius.circular(12.0),
                     borderSide: BorderSide(
                       color: Theme.of(context).primaryColor,
@@ -104,7 +98,6 @@ class AddItem extends ConsumerWidget {
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    // Estilo da borda quando não focado
                     borderRadius: BorderRadius.circular(12.0),
                     borderSide: BorderSide(
                       color: Colors.grey[300]!,
@@ -113,36 +106,30 @@ class AddItem extends ConsumerWidget {
                   ),
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16.0,
-                    vertical:
-                        14.0, // Ajustar o padding interno para melhor visualização
-                  ), // Ajustar o padding interno
+                    vertical: 14.0,
+                  ),
                   prefixIcon: Icon(
                     Icons.category_outlined,
                     color: Colors.grey[600],
-                  ), // Adicionar um ícone
+                  ),
                 ),
                 items:
                     state.categories.map((category) {
-                      return DropdownMenuItem<String>(
+                      return DropdownMenuItem<Map<String, dynamic>>(
                         value: category,
                         child: Text(
-                          category,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ), // Melhorar a cor do texto do item
-                        ), // Ajustar o tamanho da fonte do item
+                          category['name'],
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                        ),
                       );
                     }).toList(),
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ), // Estilo do texto selecionado
+                style: TextStyle(fontSize: 16, color: Colors.black87),
                 icon: Icon(
                   Icons.arrow_drop_down_circle_outlined,
                   color: Colors.grey[700],
-                ), // Ícone personalizado
+                ),
               ),
+
               SizedBox(height: 15),
               CustomTextField(
                 controller: sizeController,
@@ -186,7 +173,7 @@ class AddItem extends ConsumerWidget {
                           (color) => Chip(
                             label: Text(color),
                             onDeleted: () {
-                              notifier.removeSize(color);
+                              notifier.removeColor(color);
                             },
                           ),
                         )

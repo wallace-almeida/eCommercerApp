@@ -1,8 +1,8 @@
 class AddItemState {
   final String? imagePath;
   final bool isLoading;
-  final String? selectCategory;
-  final List<String> categories;
+  final Map<String, dynamic>? selectCategory; // id + name
+  final List<Map<String, dynamic>> categories; // lista com id e name
   final List<String> size;
   final List<String> color;
   final bool isDiscouted;
@@ -13,7 +13,7 @@ class AddItemState {
     this.isLoading = false,
     this.selectCategory,
     this.categories = const [],
-    this.size = const [], // Valor padrão vazio
+    this.size = const [],
     this.color = const [],
     this.isDiscouted = false,
     this.discoutedPercentage,
@@ -22,9 +22,9 @@ class AddItemState {
   AddItemState copyWith({
     String? imagePath,
     bool? isLoading,
-    String? selectCategory,
-    List<String>? categories,
-    List<String>? size, // Corrigido para List<String>?
+    Map<String, dynamic>? selectCategory,
+    List<Map<String, dynamic>>? categories,
+    List<String>? size,
     List<String>? color,
     bool? isDiscouted,
     String? discoutedPercentage,

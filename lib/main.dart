@@ -1,22 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ecommerce/page/Role_base_login/Admin/home_pageAdim/home_screen_admin.dart';
 import 'package:ecommerce/page/Role_base_login/User/user_home_screen.dart';
 import 'package:ecommerce/page/login/login_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Supabase.initialize(
+    anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZXJmcHV1cGlrYm5jZXFjdmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0NjIxOTMsImV4cCI6MjA2NjAzODE5M30.DsW5nbye4X0ZFJmrcjSLYqGNv05TP0ul3hWAfpAcqhQ",
+    url: "https://poerfpuupikbnceqcvgo.supabase.co",
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
@@ -26,64 +27,97 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         ),
-        home: AuthStateHandler(),
+        home: const AuthStateHandler(),
       ),
     );
   }
 }
 
 class AuthStateHandler extends StatefulWidget {
-  AuthStateHandler({super.key});
+  const AuthStateHandler({super.key});
 
   @override
   State<AuthStateHandler> createState() => _AuthStateHandlerState();
 }
 
 class _AuthStateHandlerState extends State<AuthStateHandler> {
-  User? _currentUser; // guardar o usuario logado
+  final _supabase = Supabase.instance.client;
+  Session? _session;
   String? _userRole;
+  bool _loading = true;
+
   @override
   void initState() {
-    inicializeAuthState();
     super.initState();
-  }
 
-  void inicializeAuthState() {
-    FirebaseAuth.instance.authStateChanges().listen((user) async {
-      if (!mounted) return;
+    _supabase.auth.onAuthStateChange.listen((data) {
+      final session = data.session;
 
-      setState(() {
-        _currentUser = user;
-      });
-
-      if (user != null) {
-        final userDoc =
-            await FirebaseFirestore.instance
-                .collection("users")
-                .doc(user.uid)
-                .get();
-
-        if (userDoc.exists) {
-          setState(() {
-            _userRole = userDoc['role'];
-          });
-        }
+      if (session != null) {
+        _session = session;
+        _fetchUserRole(session.user.id);
       } else {
         setState(() {
+          _session = null;
           _userRole = null;
+          _loading = false;
         });
       }
     });
+
+    final currentSession = _supabase.auth.currentSession;
+    if (currentSession != null) {
+      _session = currentSession;
+      _fetchUserRole(currentSession.user.id);
+    } else {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUserRole(String userId) async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final response =
+          await _supabase
+              .from('users')
+              .select('role')
+              .eq('id', userId)
+              .single();
+
+      setState(() {
+        _userRole = response['role'] as String?;
+        _loading = false;
+      });
+    } catch (e) {
+      // Em caso de erro, desloga o usuário
+      await _supabase.auth.signOut();
+      setState(() {
+        _session = null;
+        _userRole = null;
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
-      return LoginScreen();
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (_userRole == null) {
-      return Center(child: CircularProgressIndicator());
+
+    if (_session == null) {
+      return const LoginScreen();
     }
-    return _userRole == "Admin" ? HomeScreenAdmin() : HomeScreen();
+
+    if (_userRole == "Admin") {
+      return const HomeScreenAdmin();
+    } else {
+      return const HomeScreen();
+    }
   }
 }

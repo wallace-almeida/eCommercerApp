@@ -1,10 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ecommerce/page/Role_base_login/Admin/item/add_item.dart';
 import 'package:ecommerce/page/login/login_screen.dart';
 import 'package:ecommerce/service/auth_service/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 AuthService _authService = AuthService();
 
@@ -16,89 +15,99 @@ class HomeScreenAdmin extends StatefulWidget {
 }
 
 class _HomeScreenAdminState extends State<HomeScreenAdmin> {
-  final CollectionReference items = FirebaseFirestore.instance.collection(
-    'items',
-  );
   String? selectedCategory;
   List<String> categories = [];
+  final SupabaseClient supabase = Supabase.instance.client;
+
+  Future<List<dynamic>> fetchItems() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return [];
+
+    var query = supabase.from('items').select().eq('uploaded_by', user.id);
+
+    if (selectedCategory != null && selectedCategory != "All") {
+      query = query.eq('category_id', selectedCategory!);
+    }
+
+    final response = await query;
+    return response;
+  }
+
   @override
   Widget build(BuildContext context) {
-    String uid = FirebaseAuth.instance.currentUser!.uid;
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      // Caso o usuário esteja deslogado por algum motivo
+      Future.microtask(() {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text("Administrador"),
+        title: const Text("Administrador"),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.exit_to_app),
+            icon: const Icon(Icons.exit_to_app),
             onPressed: () async {
               await _authService.signOut();
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
               );
             },
           ),
         ],
       ),
-
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     "SEUS ITENS CARREGADOS",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                 ],
               ),
-
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.7, // Defina uma altura para o StreamBuilder
-                child: StreamBuilder<QuerySnapshot>(
-                  stream:
-                      (selectedCategory == null || selectedCategory == "All")
-                          ? items
-                              .where("uploadedBy", isEqualTo: uid)
-                              .snapshots()
-                          : items
-                              .where("uploadedBy", isEqualTo: uid)
-                              .where('Category', isEqualTo: selectedCategory)
-                              .snapshots(),
-                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Erro ao carregar os itens.'));
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: FutureBuilder<List<dynamic>>(
+                  future: fetchItems(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
                     }
-                    final document = snapshot.data?.docs ?? [];
-                    if (document.isEmpty) {
-                      return Center(child: Text('Nenhum item encontrado.'));
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text('Erro ao carregar os itens.'),
+                      );
                     }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
-                      return Center(child: Text('Nenhum item encontrado.'));
+                    final items = snapshot.data ?? [];
+                    if (items.isEmpty) {
+                      return const Center(
+                        child: Text('Nenhum item encontrado.'),
+                      );
                     }
 
                     return ListView.builder(
-                      itemCount: document.length,
+                      itemCount: items.length,
                       itemBuilder: (context, index) {
-                        final item =
-                            document[index].data() as Map<String, dynamic>;
+                        final item = items[index] as Map<String, dynamic>;
                         return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: 8,
-                          ), // coloque o padding que quiser
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: Material(
                             elevation: 5,
                             borderRadius: BorderRadius.circular(15),
@@ -106,7 +115,7 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(15),
                                 child: CachedNetworkImage(
-                                  imageUrl: item['image'],
+                                  imageUrl: item['image_url'] ?? '',
                                   height: 60,
                                   width: 60,
                                   fit: BoxFit.cover,
@@ -114,7 +123,7 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                               ),
                               title: Text(
                                 item['name'] ?? "N/A",
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.black,
@@ -125,16 +134,16 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                                 children: [
                                   Text(
                                     "Preço: R\$ ${item['price'] != null ? (item['price'] as num).toStringAsFixed(2) : "N/A"}",
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 15,
                                       letterSpacing: -1,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.red,
                                     ),
                                   ),
-                                  SizedBox(width: 5),
+                                  const SizedBox(width: 5),
                                   Text("${item['Category'] ?? "N/A"}"),
-                                  SizedBox(width: 5),
+                                  const SizedBox(width: 5),
                                 ],
                               ),
                             ),
@@ -157,7 +166,7 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
             context,
           ).push(MaterialPageRoute(builder: (context) => AddItem()));
         },
-        child: Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
