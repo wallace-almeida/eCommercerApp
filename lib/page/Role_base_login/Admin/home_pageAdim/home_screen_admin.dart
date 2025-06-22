@@ -3,41 +3,47 @@ import 'package:ecommerce/page/Role_base_login/Admin/item/add_item.dart';
 import 'package:ecommerce/page/login/login_screen.dart';
 import 'package:ecommerce/service/auth_service/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-AuthService _authService = AuthService();
+import '../controller/ItemsListNotifier.dart';
 
-class HomeScreenAdmin extends StatefulWidget {
+class HomeScreenAdmin extends ConsumerStatefulWidget {
   const HomeScreenAdmin({super.key});
 
   @override
-  State<HomeScreenAdmin> createState() => _HomeScreenAdminState();
+  ConsumerState<HomeScreenAdmin> createState() => _HomeScreenAdminState();
 }
 
-class _HomeScreenAdminState extends State<HomeScreenAdmin> {
+class _HomeScreenAdminState extends ConsumerState<HomeScreenAdmin> {
+  final AuthService _authService = AuthService();
+
   String? selectedCategory;
-  List<String> categories = [];
-  final SupabaseClient supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> categories = [];
 
-  Future<List<dynamic>> fetchItems() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return [];
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
 
-    var query = supabase.from('items').select().eq('uploaded_by', user.id);
-
-    if (selectedCategory != null && selectedCategory != "All") {
-      query = query.eq('category_id', selectedCategory!);
-    }
-
-    final response = await query;
-    return response;
+  Future<void> _loadCategories() async {
+    final supabase = Supabase.instance.client;
+    final result = await supabase.from('categories').select('id, name');
+    setState(() {
+      categories = List<Map<String, dynamic>>.from(result);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
+
+    final itemsState = ref.watch(itemsListProvider);
+    final itemsController = ref.read(itemsListProvider.notifier);
+
     if (user == null) {
-      // Caso o usuário esteja deslogado por algum motivo
       Future.microtask(() {
         Navigator.pushReplacement(
           context,
@@ -66,107 +72,194 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "SEUS ITENS CARREGADOS",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Text(
+                    "Seus Itens Carregados",
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const Spacer(),
-                ],
-              ),
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.7,
-                child: FutureBuilder<List<dynamic>>(
-                  future: fetchItems(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(
-                        child: Text('Erro ao carregar os itens.'),
-                      );
-                    }
-
-                    final items = snapshot.data ?? [];
-                    if (items.isEmpty) {
-                      return const Center(
-                        child: Text('Nenhum item encontrado.'),
-                      );
-                    }
-
-                    return ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index] as Map<String, dynamic>;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Material(
-                            elevation: 5,
-                            borderRadius: BorderRadius.circular(15),
-                            child: ListTile(
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(15),
-                                child: CachedNetworkImage(
-                                  imageUrl: item['image_url'] ?? '',
-                                  height: 60,
-                                  width: 60,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              title: Text(
-                                item['name'] ?? "N/A",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Preço: R\$ ${item['price'] != null ? (item['price'] as num).toStringAsFixed(2) : "N/A"}",
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      letterSpacing: -1,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text("${item['Category'] ?? "N/A"}"),
-                                  const SizedBox(width: 5),
-                                ],
-                              ),
-                            ),
-                          ),
+                ),
+                const Spacer(),
+                DropdownButton<String>(
+                  hint: const Text("Categoria"),
+                  value: selectedCategory,
+                  items:
+                      categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['id'].toString(),
+                          child: Text(category['name']),
                         );
-                      },
-                    );
+                      }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedCategory = newValue;
+                    });
+                    ref
+                        .read(itemsListProvider.notifier)
+                        .filterByCategory(newValue);
                   },
                 ),
+              ],
+            ),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: itemsState.when(
+                data: (items) {
+                  if (items.isEmpty) {
+                    return const Center(child: Text('Nenhum item encontrado.'));
+                  }
+                  return ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          elevation: 5,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(10),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                imageUrl: item['image_url'] ?? '',
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator(),
+                                errorWidget:
+                                    (context, url, error) =>
+                                        const Icon(Icons.error),
+                              ),
+                            ),
+                            title: Text(
+                              item['name'] ?? "N/A",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Preço: R\$ ${item['price'] != null ? (item['price'] as num).toStringAsFixed(2) : "N/A"}",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                                Text(
+                                  "Categoria: ${item['category_id'] != null ? item['category_id']['name'] : "N/A"}",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text("Confirmar exclusão"),
+                                        content: const Text(
+                                          "Tem certeza que deseja deletar este item?",
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(
+                                                  context,
+                                                  false,
+                                                ),
+                                            child: const Text("Cancelar"),
+                                          ),
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(
+                                                  context,
+                                                  true,
+                                                ),
+                                            child: const Text(
+                                              "Deletar",
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                );
+
+                                if (confirm == true) {
+                                  try {
+                                    await itemsController.deleteItem(
+                                      item['id'].toString(),
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Item deletado com sucesso!',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Erro ao deletar item: ${e.toString()}',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error:
+                    (error, stack) => Center(
+                      child: Text('Erro ao carregar os itens: $error'),
+                    ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        foregroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         backgroundColor: Colors.blue,
         onPressed: () async {
           await Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (context) => AddItem()));
+          ref.read(itemsListProvider.notifier).refresh();
         },
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }
